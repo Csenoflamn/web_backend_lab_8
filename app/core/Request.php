@@ -16,13 +16,16 @@ class Request
     public function getBody()
     {
         $body = [];
-        if ($this->getMethod() === 'GET') {
+        $method = $this->getMethod();
+        
+        if ($method === 'GET') {
             $body = $_GET;
         } else {
             $input = file_get_contents('php://input');
-            if ($this->isJson()) {
+            if (!empty($input)) {
                 $body = json_decode($input, true) ?? [];
-            } else {
+            }
+            if (empty($body)) {
                 $body = $_POST;
             }
         }
@@ -36,7 +39,8 @@ class Request
 
     public function isAjax()
     {
-        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
+        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+               $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
     }
 
     public function getParam($key, $default = null)
