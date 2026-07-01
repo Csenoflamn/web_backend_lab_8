@@ -245,67 +245,90 @@ function init() {
 
 	initFormLocalStorage();
 
-const form = document.getElementById('contactForm');
-if (form) {
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
+	const form = document.getElementById('contactForm');
+	if (form) {
+		form.addEventListener('submit', async function(e) {
+			e.preventDefault();
 
-        const name = document.getElementById('formName').value.trim();
-        const email = document.getElementById('formEmail').value.trim();
-        const message = document.getElementById('formMessage').value.trim();
+			const name = document.getElementById('formName').value.trim();
+			const email = document.getElementById('formEmail').value.trim();
+			const message = document.getElementById('formMessage').value.trim();
 
-        let errors = {};
-        if (name.length < 2) errors.name = 'Имя должно быть не короче 2 символов';
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Введите корректный email';
-        if (Object.keys(errors).length > 0) {
-            alert('Ошибки: ' + Object.values(errors).join('\n'));
-            return;
-        }
+			// Клиентская валидация
+			let errors = {};
+			if (name.length < 2) errors.name = 'Имя должно быть не короче 2 символов';
+			if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+				errors.email = 'Введите корректный email';
+			}
 
-        let userId = localStorage.getItem('userId');
-        let url = '/api/users';
-        let method = 'POST';
-        if (userId) {
-            url = `/api/users/${userId}`;
-            method = 'PUT';
-        }
+			if (Object.keys(errors).length > 0) {
+				alert('Ошибки:\n' + Object.values(errors).join('\n'));
+				return;
+			}
 
-        try {
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ name, email, message })
-            });
+			let userId = localStorage.getItem('userId');
+			let url;
+			let method;
 
-            const data = await response.json();
+			if (userId) {
+				url = `/lab_8/public/index.php?route=api/users&id=${userId}`;
+				method = 'PUT';
+			} else {
+				url = `/lab_8/public/index.php?route=api/users`;
+				method = 'POST';
+			}
 
-            if (response.ok) {
-                if (method === 'POST') {
-                    if (data.success && data.id) {
-                        localStorage.setItem('userId', data.id);
-                        alert(`Регистрация успешна!\nЛогин: ${data.login}\nПароль: ${data.password}`);
-                    }
-                } else {
-                    alert('Данные успешно обновлены!');
-                }
-            } else {
-                if (data.errors) {
-                    let msg = Object.values(data.errors).join('\n');
-                    alert('Ошибка: ' + msg);
-                } else {
-                    alert('Произошла ошибка. Попробуйте ещё раз.');
-                }
-            }
-        } catch (error) {
-            console.error('Ошибка запроса:', error);
-            alert('Не удалось отправить запрос. Проверьте соединение.');
-        }
-    });
-}
+			try {
+				console.log('Отправляем запрос:', method, url);
+
+				const response = await fetch(url, {
+					method: method,
+					headers: {
+						'Content-Type': 'application/json',
+						'Accept': 'application/json',
+						'X-Requested-With': 'XMLHttpRequest'
+					},
+					body: JSON.stringify({ name, email, message })
+				});
+
+				console.log('Статус ответа:', response.status);
+				
+				const text = await response.text();
+				console.log('Текст ответа:', text);
+
+				let data;
+				try {
+					data = JSON.parse(text);
+				} catch (e) {
+					console.error('Невалидный JSON:', text);
+					alert('Ошибка сервера. Ответ не является JSON.');
+					return;
+				}
+
+				if (response.ok) {
+					if (method === 'POST') {
+						if (data.success && data.id) {
+							localStorage.setItem('userId', data.id);
+							alert(`Регистрация успешна!\nЛогин: ${data.login}\nПароль: ${data.password}`);
+							updateLogoutButton();
+						}
+					} else {
+						alert('Данные успешно обновлены!');
+					}
+				} else {
+					if (data.errors) {
+						let msg = Object.values(data.errors).join('\n');
+						alert('Ошибка:\n' + msg);
+					} else {
+						alert('Произошла ошибка. Попробуйте ещё раз.');
+					}
+				}
+			} catch (error) {
+				console.error('Ошибка запроса:', error);
+				alert('Не удалось отправить запрос. Проверьте соединение.');
+			}
+		});
+	}
 }
 window.addEventListener("resize", () => {
 	let header_active = Array.from(document.querySelectorAll(".header ._active"));
