@@ -3,7 +3,7 @@ window.onload = init;
 function init() {
     let d = document;
     let burger = d.querySelector(".burger");
-    burger.addEventListener("click", toggleMenu);
+    if (burger) burger.addEventListener("click", toggleMenu);
 
     let links = Array.from(d.querySelectorAll(".nav-header__link"));
     links.forEach((elem) => {
@@ -14,17 +14,14 @@ function init() {
     photo__buttons.forEach((elem) => {
         elem.addEventListener("click", () => {
             let active__button = d.querySelector(".nav-photo_active");
-            active__button.classList.remove("nav-photo_active");
+            if (active__button) active__button.classList.remove("nav-photo_active");
             elem.classList.add("nav-photo_active");
 
-            let country = Array.from(elem.classList).filter((elem) => {
-                return elem.match(/country_/);
-            }).toString().split("_")[1];
+            let country = Array.from(elem.classList).filter((cls) => cls.match(/country_/)).toString().split("_")[1];
             console.log(country);
-
             let photoes = Array.from(document.querySelectorAll(".images-photo__image img"));
-            photoes.forEach((elem, i) => {
-                elem.setAttribute("src", `images/photo/${country}/photo_${i + 1}.png`);
+            photoes.forEach((img, i) => {
+                img.setAttribute("src", `images/photo/${country}/photo_${i + 1}.png`);
             });
         });
     });
@@ -32,27 +29,29 @@ function init() {
     const companies = d.querySelector(".companies__container");
     let isDragging = false;
     let startX, initialX;
-    companies.addEventListener("mousedown", (event) => {
-        if (window.innerWidth > 912) {
-            isDragging = true;
-            startX = event.clientX;
-            initialX = companies.offsetLeft;
-            d.body.style.cursor = "grabbing";
-            event.preventDefault();
-        }
-    });
-    d.addEventListener("mousemove", (event) => {
-        if (window.innerWidth > 912 && isDragging) {
-            const deltaX = event.clientX - startX;
-            companies.style.left = (initialX + deltaX) + 'px';
-        }
-    });
-    d.addEventListener("mouseup", () => {
-        if (window.innerWidth > 912) {
-            isDragging = false;
-            d.body.style.cursor = "default";
-        }
-    });
+    if (companies) {
+        companies.addEventListener("mousedown", (event) => {
+            if (window.innerWidth > 912) {
+                isDragging = true;
+                startX = event.clientX;
+                initialX = companies.offsetLeft;
+                d.body.style.cursor = "grabbing";
+                event.preventDefault();
+            }
+        });
+        d.addEventListener("mousemove", (event) => {
+            if (window.innerWidth > 912 && isDragging) {
+                const deltaX = event.clientX - startX;
+                companies.style.left = (initialX + deltaX) + 'px';
+            }
+        });
+        d.addEventListener("mouseup", () => {
+            if (window.innerWidth > 912) {
+                isDragging = false;
+                d.body.style.cursor = "default";
+            }
+        });
+    }
 
     initPhotoSlider();
 
@@ -64,7 +63,7 @@ function init() {
             if (!existingBtn) {
                 const logoutBtn = document.createElement('button');
                 logoutBtn.id = 'logoutBtn';
-                logoutBtn.textContent = 'Выйти (сбросить данные)';
+                logoutBtn.textContent = '🚪 Выйти (сбросить данные)';
                 logoutBtn.style.cssText = `
                     background: #ff4444;
                     color: white;
@@ -89,27 +88,59 @@ function init() {
                 });
             }
         } else {
-            if (existingBtn) {
-                existingBtn.remove();
-            }
+            if (existingBtn) existingBtn.remove();
         }
     }
 
     updateLogoutButton();
+
+    const loginBtn = document.getElementById('loginModeBtn');
+    const registerBtn = document.getElementById('registerModeBtn');
+    const passwordField = document.getElementById('passwordField');
+    const submitBtn = document.getElementById('submitBtn');
+    const nameField = document.getElementById('formName');
+    const messageField = document.getElementById('formMessage');
+
+    let currentMode = 'login';
+
+    function setMode(mode) {
+        currentMode = mode;
+        if (mode === 'login') {
+            if (loginBtn) loginBtn.style.background = '#5221E6';
+            if (registerBtn) registerBtn.style.background = '#181823';
+            if (passwordField) passwordField.style.display = 'block';
+            if (submitBtn) submitBtn.textContent = 'ВОЙТИ';
+        } else {
+            if (loginBtn) loginBtn.style.background = '#181823';
+            if (registerBtn) registerBtn.style.background = '#5221E6';
+            if (passwordField) passwordField.style.display = 'none';
+            if (submitBtn) submitBtn.textContent = 'ЗАРЕГИСТРИРОВАТЬСЯ';
+        }
+    }
+
+    if (loginBtn && registerBtn) {
+        loginBtn.addEventListener('click', () => setMode('login'));
+        registerBtn.addEventListener('click', () => setMode('register'));
+    }
+    setMode('login');
 
     const form = document.getElementById('contactForm');
     if (form) {
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const name = document.getElementById('formName').value.trim();
             const email = document.getElementById('formEmail').value.trim();
+            const password = document.getElementById('formPassword').value.trim();
+            const name = document.getElementById('formName').value.trim();
             const message = document.getElementById('formMessage').value.trim();
 
             let errors = {};
-            if (name.length < 2) errors.name = 'Имя должно быть не короче 2 символов';
-            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                errors.email = 'Введите корректный email';
+            if (currentMode === 'login') {
+                if (!email) errors.email = 'Введите email';
+                if (!password) errors.password = 'Введите пароль';
+            } else {
+                if (!email) errors.email = 'Введите email';
+                if (name.length < 2) errors.name = 'Имя должно быть не короче 2 символов';
             }
 
             if (Object.keys(errors).length > 0) {
@@ -117,21 +148,20 @@ function init() {
                 return;
             }
 
-            let userId = localStorage.getItem('userId');
-            let url;
-            let method;
-
-            if (userId) {
-                url = `/lab_8/public/index.php?route=api/users&id=${userId}`;
-                method = 'PUT';
-            } else {
-                url = `/lab_8/public/index.php?route=api/users`;
+            let url, method, payload;
+            if (currentMode === 'login') {
+                url = '/lab_8/public/index.php?route=api/login';
                 method = 'POST';
+                payload = { email, password };
+            } else {
+                url = '/lab_8/public/index.php?route=api/users';
+                method = 'POST';
+                payload = { name, email, message };
             }
 
             try {
                 console.log('Отправляем запрос:', method, url);
-                console.log('Данные:', { name, email, message });
+                console.log('Данные:', payload);
 
                 const response = await fetch(url, {
                     method: method,
@@ -140,13 +170,13 @@ function init() {
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
                     },
-                    body: JSON.stringify({ name, email, message })
+                    body: JSON.stringify(payload)
                 });
 
                 console.log('Статус ответа:', response.status);
-                
+
                 const text = await response.text();
-                console.log('📄 Текст ответа:', text);
+                console.log('Текст ответа:', text);
 
                 let data;
                 try {
@@ -158,14 +188,20 @@ function init() {
                 }
 
                 if (response.ok) {
-                    if (method === 'POST') {
+                    if (currentMode === 'login') {
+                        // Успешный вход
+                        if (data.success && data.id) {
+                            localStorage.setItem('userId', data.id);
+                            alert('Вход выполнен успешно!');
+                            updateLogoutButton();
+                        }
+                    } else {
+                        // Регистрация
                         if (data.success && data.id) {
                             localStorage.setItem('userId', data.id);
                             alert(`Регистрация успешна!\nЛогин: ${data.login}\nПароль: ${data.password}`);
                             updateLogoutButton();
                         }
-                    } else {
-                        alert('Данные успешно обновлены!');
                     }
                 } else {
                     if (data.errors) {
@@ -199,17 +235,12 @@ function initPhotoSlider() {
 
     let currentSlide = 0;
     const totalSlides = slides.length;
-
-    totalSlidesElement.textContent = totalSlides;
+    if (totalSlidesElement) totalSlidesElement.textContent = totalSlides;
 
     function goToSlide(slideIndex) {
-        if (slideIndex >= totalSlides) {
-            currentSlide = 0;
-        } else if (slideIndex < 0) {
-            currentSlide = totalSlides - 1;
-        } else {
-            currentSlide = slideIndex;
-        }
+        if (slideIndex >= totalSlides) currentSlide = 0;
+        else if (slideIndex < 0) currentSlide = totalSlides - 1;
+        else currentSlide = slideIndex;
 
         slider.style.transform = `translateX(-${currentSlide * 100}%)`;
 
@@ -217,7 +248,7 @@ function initPhotoSlider() {
             dot.classList.toggle('active', index === currentSlide);
         });
 
-        currentSlideElement.textContent = currentSlide + 1;
+        if (currentSlideElement) currentSlideElement.textContent = currentSlide + 1;
     }
 
     if (prevBtn) prevBtn.addEventListener('click', () => goToSlide(currentSlide - 1));
@@ -233,13 +264,9 @@ function initPhotoSlider() {
 
     const sliderContainer = document.querySelector('.photo-slider-container');
     if (sliderContainer) {
-        sliderContainer.addEventListener('mouseenter', () => {
-            clearInterval(autoSlideInterval);
-        });
+        sliderContainer.addEventListener('mouseenter', () => clearInterval(autoSlideInterval));
         sliderContainer.addEventListener('mouseleave', () => {
-            autoSlideInterval = setInterval(() => {
-                goToSlide(currentSlide + 1);
-            }, 5000);
+            autoSlideInterval = setInterval(() => goToSlide(currentSlide + 1), 5000);
         });
     }
 
@@ -256,9 +283,9 @@ function initPhotoSlider() {
 function toggleMenu() {
     let d = document;
     let navbar = d.querySelector(".nav-header");
-    navbar.classList.toggle("_active");
+    if (navbar) navbar.classList.toggle("_active");
     let header = d.querySelector(".header__content");
-    header.classList.toggle("_active");
+    if (header) header.classList.toggle("_active");
     let body = d.body;
     body.classList.toggle("menu-open");
 }
@@ -267,11 +294,10 @@ function closeMenu() {
     if (document.body.classList.contains("menu-open")) {
         let d = document;
         let navbar = d.querySelector(".nav-header");
-        navbar.classList.remove("_active");
+        if (navbar) navbar.classList.remove("_active");
         let header = d.querySelector(".header__content");
-        header.classList.remove("_active");
-        let body = d.body;
-        body.classList.remove("menu-open");
+        if (header) header.classList.remove("_active");
+        document.body.classList.remove("menu-open");
     }
 }
 
@@ -329,12 +355,7 @@ function initFormLocalStorage() {
     messageInput.addEventListener('input', scheduleSave);
 
     form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        console.log('Form submitted:', {
-            name: nameInput.value,
-            email: emailInput.value,
-            message: messageInput.value
-        });
+        console.log('Form submitted (localStorage)');
     });
 
     const clearButton = document.createElement('button');
@@ -365,16 +386,13 @@ function initFormLocalStorage() {
     }
 
     window.addEventListener('beforeunload', saveFormData);
-
     console.log('Form localStorage functionality initialized');
 }
 
 window.addEventListener("resize", () => {
     let header_active = Array.from(document.querySelectorAll(".header ._active"));
     if (header_active && window.innerWidth > 600) {
-        header_active.forEach((elem) => {
-            elem.classList.remove("_active");
-        });
+        header_active.forEach((elem) => elem.classList.remove("_active"));
         document.body.classList.remove("menu-open");
     }
 });

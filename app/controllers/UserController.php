@@ -5,19 +5,16 @@ use app\core\Request;
 use app\core\Response;
 use app\models\User;
 
-class UserController
-{
+class UserController {
     private $userModel;
     private $response;
 
-    public function __construct()
-    {
+    public function __construct() {
         $this->userModel = new User();
         $this->response = new Response();
     }
 
-    public function store(Request $request)
-    {
+    public function store(Request $request) {
         $data = $request->getBody();
         $errors = $this->validate($data, 'create');
 
@@ -58,8 +55,7 @@ class UserController
         }
     }
 
-    public function update(Request $request, $params)
-    {
+    public function update(Request $request, $params) {
         $id = $params['id'] ?? null;
         if (!$id) {
             return $this->handleError($request, ['general' => 'ID пользователя не указан']);
@@ -87,7 +83,6 @@ class UserController
         if ($request->isAjax() || $request->isJson()) {
             $this->response->json($result, 200);
         } else {
-            // Fallback
             $this->response->html('message', [
                 'title' => 'Обновление',
                 'message' => $result['message']
@@ -95,8 +90,7 @@ class UserController
         }
     }
 
-    private function validate($data, $action)
-    {
+    private function validate($data, $action) {
         $errors = [];
 
         if (empty($data['name']) || strlen($data['name']) < 2) {
@@ -116,14 +110,56 @@ class UserController
         return $errors;
     }
 
-    private function handleError($request, $errors, $status = 400)
-    {
+    private function handleError($request, $errors, $status = 400) {
         if ($request->isAjax() || $request->isJson()) {
             $this->response->json(['success' => false, 'errors' => $errors], $status);
         } else {
             $this->response->html('message', [
                 'title' => 'Ошибка валидации',
                 'message' => implode('<br>', $errors)
+            ]);
+        }
+    }
+
+    public function login(Request $request) {
+        $data = $request->getBody();
+        $errors = [];
+
+        if (empty($data['email']) || !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = 'Введите корректный email';
+        }
+        if (empty($data['password'])) {
+            $errors['password'] = 'Введите пароль';
+        }
+
+        if (!empty($errors)) {
+            return $this->handleError($request, $errors);
+        }
+
+        $user = $this->userModel->findByLogin($data['email']);
+        if (!$user) {
+            return $this->handleError($request, ['email' => 'Пользователь с таким email не найден']);
+        }
+
+        if (!password_verify($data['password'], $user['password'])) {
+            return $this->handleError($request, ['password' => 'Неверный пароль']);
+        }
+
+        $_SESSION['user_id'] = $user['id'];
+
+        $result = [
+            'success' => true,
+            'id' => $user['id'],
+            'login' => $user['login'],
+            'profile_url' => '/profile/' . $user['id']
+        ];
+
+        if ($request->isAjax() || $request->isJson()) {
+            $this->response->json($result, 200);
+        } else {
+            $this->response->html('message', [
+                'title' => 'Вход выполнен',
+                'message' => "Добро пожаловать, {$user['name']}!"
             ]);
         }
     }

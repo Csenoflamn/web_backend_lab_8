@@ -41,6 +41,13 @@ if ($route === 'api/users') {
         }
         exit;
     }
+} elseif ($route === 'api/login') {
+    if ($method === 'POST') {
+        $controller = new UserController();
+        $request = new Request();
+        $controller->login($request);
+        exit;
+    }
 }
 
 ?>
@@ -522,32 +529,41 @@ if ($route === 'api/users') {
 					<div class="start__container">
 						<div class="start__header header-start">
 							<div class="header-start__title">Let's get started</div>
-							<div class="header-start__text">Now that you know a lot about me, let me know if you are
-								interested to work with me.</div>
+							<div class="header-start__text">Now that you know a lot about me, let me know if you are interested to work with me.</div>
 						</div>
-						<form action="/api/users" method="POST" class="start__form form-start" id="contactForm">
+
+						<div class="auth-toggle" style="display: flex; gap: 20px; margin-bottom: 20px;">
+							<button id="loginModeBtn" class="auth-mode-btn" style="background: #5221E6; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Войти</button>
+							<button id="registerModeBtn" class="auth-mode-btn" style="background: #181823; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Зарегистрироваться</button>
+						</div>
+
+						<form action="/lab_8/public/index.php?route=api/users" method="POST" class="start__form form-start" id="contactForm">
 							<div class="form-start__field form-field">
-								<div class="form-field__caption">Name</div>
+								<div class="form-field__caption">Email</div>
+								<div class="form-field__input">
+									<input class="form-field__email" type="email" id="formEmail" name="email" required>
+								</div>
+							</div>
+							<div class="form-start__field form-field" id="passwordField" style="display: none;">
+								<div class="form-field__caption">Пароль</div>
+								<div class="form-field__input">
+									<input class="form-field__password" type="password" id="formPassword" name="password">
+								</div>
+							</div>
+							<div class="form-start__field form-field">
+								<div class="form-field__caption">Имя</div>
 								<div class="form-field__input">
 									<input class="form-field__name" type="text" id="formName" name="name">
 								</div>
 							</div>
 							<div class="form-start__field form-field">
-								<div class="form-field__caption">Email</div>
-								<div class="form-field__input">
-									<input class="form-field__email" type="email" id="formEmail" name="email">
-								</div>
-							</div>
-							<div class="form-start__field form-field">
-								<div class="form-field__caption">Message</div>
+								<div class="form-field__caption">Сообщение</div>
 								<div class="form-field__input">
 									<textarea class="form-field__message" id="formMessage" name="message"></textarea>
 								</div>
 							</div>
 							<div class="form-start__submit">
-								<button type="submit" class="submit__btn">
-									LET'S GET STARTED
-								</button>
+								<button type="submit" class="submit__btn" id="submitBtn">ВОЙТИ</button>
 							</div>
 						</form>
 					</div>
