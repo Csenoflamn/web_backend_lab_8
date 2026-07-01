@@ -17,7 +17,9 @@ spl_autoload_register(function ($class) {
 use app\core\Request;
 use app\controllers\UserController;
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 $route = isset($_GET['route']) ? $_GET['route'] : '';
 $method = $_SERVER['REQUEST_METHOD'];
@@ -40,6 +42,7 @@ if ($route === 'api/users') {
         exit;
     }
 }
+
 ?>
 
 <!DOCTYPE html>

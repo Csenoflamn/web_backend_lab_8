@@ -40,7 +40,6 @@ class User
         return $stmt->execute([$name, $message, $id]);
     }
 
-    // Генерация случайного пароля
     public function generatePassword($length = 8)
     {
         return substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, $length);
