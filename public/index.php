@@ -11,48 +11,37 @@ spl_autoload_register(function ($class) {
     $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
     if (file_exists($file)) {
         require $file;
-    } else {
-        echo "Файл не найден: $file";
-        exit;
     }
 });
 
-use app\core\Router;
 use app\core\Request;
 use app\controllers\UserController;
 
 session_start();
 
-$uri = $_SERVER['REQUEST_URI'];
-$base_path = '/lab_8/public';
-if (strpos($uri, $base_path) === 0) {
-    $uri = substr($uri, strlen($base_path));
-}
-if (empty($uri)) {
-    $uri = '/';
-}
+$route = isset($_GET['route']) ? $_GET['route'] : '';
+$method = $_SERVER['REQUEST_METHOD'];
 
-echo "<!-- DEBUG: URI = $uri -->";
-
-if (strpos($uri, '/api/') === 0) {
-    $router = new Router();
+if ($route === 'api/users') {
+    $controller = new UserController();
     $request = new Request();
-
-    $router->add('POST', '/api/users', function($req) {
-        $controller = new UserController();
-        return $controller->store($req);
-    });
-
-    $router->add('PUT', '/api/users/{id}', function($req, $params) {
-        $controller = new UserController();
-        return $controller->update($req, $params);
-    });
-
-    $router->dispatch($request);
-    exit;
+    
+    if ($method === 'POST') {
+        $controller->store($request);
+        exit;
+    } elseif ($method === 'PUT') {
+        $id = isset($_GET['id']) ? $_GET['id'] : null;
+        if ($id) {
+            $controller->update($request, ['id' => $id]);
+        } else {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'errors' => ['general' => 'ID пользователя не указан']]);
+        }
+        exit;
+    }
 }
-
 ?>
+
 <!DOCTYPE html>
 <html lang='en'>
 <head>
